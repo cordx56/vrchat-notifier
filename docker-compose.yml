@@ -1,0 +1,12 @@
+version: "3"
+services:
+  next:
+    build: next
+    restart: always
+  nginx:
+    build: nginx
+    ports:
+      - 80:80
+    environment:
+      TZ: Asia/Tokyo
+    restart: always
