@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import { API_BASE_URL } from '../common';
 
 type Props = {
   show: boolean;
-  onSuccess?: () => void;
+  onSuccess?: (token: string, auth: string) => void;
 };
 
 const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
@@ -26,30 +26,47 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
     setLogining(true);
     setErrorMessage('');
     axios
+      .get(API_BASE_URL + '/1/config')
+      .then((response) => {
+        localStorage.setItem('apiKey', response.data.apiKey);
+      })
+      .catch((error) => console.log(error));
+    let auth = localStorage.getItem('auth');
+    if (!auth) {
+      auth = btoa(
+        encodeURIComponent(username) + ':' + encodeURIComponent(password)
+      );
+    }
+    axios
       .get(API_BASE_URL + '/1/auth', {
         headers: {
-          Authorization:
-            'Basic ' +
-            btoa(
-              encodeURIComponent(username) + ':' + encodeURIComponent(password)
-            ),
+          Authorization: 'Basic ' + auth,
         },
       })
       .then((response) => {
         setLogining(false);
         if (response.data.ok) {
           localStorage.setItem('token', response.data.token);
+          localStorage.setItem('auth', auth);
           if (onSuccess) {
-            onSuccess();
+            onSuccess(response.data.token, auth);
           }
         }
       })
       .catch((error) => {
-        console.log(error);
         setLogining(false);
-        setErrorMessage(error.response.data.error.message);
+        if (error.response) {
+          setErrorMessage(error.response.data.error.message);
+        } else {
+          setErrorMessage(error);
+        }
       });
   };
+  useEffect(() => {
+    if (localStorage.getItem('auth')) {
+      login('', '');
+    }
+  }, []);
   return (
     <>
       <Modal show={show} backdrop="static">

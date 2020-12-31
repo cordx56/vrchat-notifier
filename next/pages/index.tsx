@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { Container, Navbar } from 'react-bootstrap';
+import { Container, Navbar, Spinner, Row, Col } from 'react-bootstrap';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import LoginModal from '../components/loginModal';
+import FriendList from '../components/friendList';
 
 export default function Home() {
   let socket = null;
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [eventLog, setEventLog] = useState([]);
+  const [updateFlag, setUpdateFlag] = useState(0);
+  const [webSocketConnectFlag, setWebSocketConnectFlag] = useState(false);
+  const [token, setToken] = useState('');
+  const [auth, setAuth] = useState('');
 
   const onWebSocketMessage = (e) => {
     const data = JSON.parse(e.data);
@@ -51,16 +58,27 @@ export default function Home() {
         },
       ].concat(eventLog)
     );
+
+    setUpdateFlag(updateFlag + 1);
+  };
+
+  const onWebSocketClose = (e) => {
+    setWebSocketConnectFlag(false);
+    connectWebSocket();
+  };
+
+  const onWebSocketOpen = (e) => {
+    setWebSocketConnectFlag(true);
   };
 
   const connectWebSocket = () => {
-    socket = new WebSocket(
-      'wss://pipeline.vrchat.cloud/?authToken=' + localStorage.getItem('token')
-    );
-    socket.onmessage = onWebSocketMessage;
-    socket.onclose = (e) => {
-      setShowLoginModal(true);
-    };
+    const token = localStorage.getItem('token');
+    if (token) {
+      socket = new WebSocket('wss://pipeline.vrchat.cloud/?authToken=' + token);
+      socket.onmessage = onWebSocketMessage;
+      socket.onclose = onWebSocketClose;
+      socket.onopen = onWebSocketOpen;
+    }
   };
 
   useEffect(() => {
@@ -68,6 +86,14 @@ export default function Home() {
       Notification.requestPermission();
     }
   }, []);
+
+  const onLoginSuccess = (token, auth) => {
+    setToken(token);
+    setAuth(auth);
+    setShowLoginModal(false);
+    connectWebSocket();
+    setUpdateFlag(updateFlag + 1);
+  };
 
   const eventLogHtml = eventLog.map((obj, index) => (
     <div key={index}>
@@ -83,21 +109,29 @@ export default function Home() {
       <Head>
         <title>VRChat Notifier</title>
       </Head>
-      <LoginModal
-        show={showLoginModal}
-        onSuccess={() => {
-          setShowLoginModal(false);
-          connectWebSocket();
-        }}
-      />
+      <LoginModal show={showLoginModal} onSuccess={onLoginSuccess} />
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand>VRChat Notifier</Navbar.Brand>
+          <Navbar.Text>
+            {webSocketConnectFlag ? (
+              <FontAwesomeIcon icon={faCheck} />
+            ) : (
+              <Spinner animation="grow" variant="primary" size="sm" />
+            )}
+          </Navbar.Text>
         </Container>
       </Navbar>
       <Container>
-        <h1>Event log</h1>
-        {eventLogHtml}
+        <Row>
+          <Col>
+            <h1>Event log</h1>
+            {eventLogHtml}
+          </Col>
+          <Col md="3">
+            <FriendList update={updateFlag} auth={auth} />
+          </Col>
+        </Row>
       </Container>
     </>
   );
