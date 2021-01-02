@@ -12,7 +12,7 @@ const FriendList: React.FC<Props> = ({ update, auth }) => {
   const [worldList, setWorldList] = useState({});
   const updateFriendList = () => {
     //const auth = localStorage.getItem('auth');
-    const apiKey = localStorage.getItem('apiKey');
+    const apiKey = localStorage.getItem('clientApiKey');
     if (auth && apiKey) {
       axios
         .get(API_BASE_URL + '/1/auth/user/friends?&apiKey=' + apiKey, {
@@ -22,12 +22,29 @@ const FriendList: React.FC<Props> = ({ update, auth }) => {
         })
         .then((response) => {
           const friends = response.data;
-          const newFriends = [];
           friends.map((friend) => {
-            newFriends.push(friend);
+            if (friend.location !== 'private') {
+              const worldId = friend.location.split(':')[0];
+              axios
+                .get(
+                  API_BASE_URL + '/1/worlds/' + worldId + '?apiKey=' + apiKey,
+                  {
+                    headers: {
+                      Authorization: 'Basic ' + auth,
+                    },
+                  }
+                )
+                .then((response) => {
+                  //setWorldList((prevState) => {
+                  //  prevState[worldId] = response.data;
+                  //  return prevState;
+                  //});
+                  console.log(response.data);
+                })
+                .catch((error) => console.log(error));
+            }
           });
-          setFriendList(newFriends);
-          console.log(newFriends);
+          setFriendList(friends);
         })
         .catch((error) => console.log(error));
     }
@@ -55,6 +72,9 @@ const FriendList: React.FC<Props> = ({ update, auth }) => {
         />
         <h4>{obj.status}</h4>
         {obj.location}
+        {obj.location !== 'private'
+          ? worldList[obj.location.split(':')[0]]
+          : 'private'}
       </div>
     </div>
   ));

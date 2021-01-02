@@ -13,6 +13,7 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [logining, setLogining] = useState(false);
+  const [saveUsernamePassword, setSaveUsernamePassword] = useState(false);
 
   const colorRed = {
     color: 'red',
@@ -28,7 +29,7 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
     axios
       .get(API_BASE_URL + '/1/config')
       .then((response) => {
-        localStorage.setItem('apiKey', response.data.apiKey);
+        localStorage.setItem('clientApiKey', response.data.clientApiKey);
       })
       .catch((error) => console.log(error));
     let auth = localStorage.getItem('auth');
@@ -46,8 +47,10 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
       .then((response) => {
         setLogining(false);
         if (response.data.ok) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('auth', auth);
+          // localStorage.setItem('token', response.data.token);
+          if (saveUsernamePassword) {
+            localStorage.setItem('auth', auth);
+          }
           if (onSuccess) {
             onSuccess(response.data.token, auth);
           }
@@ -63,10 +66,10 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
       });
   };
   useEffect(() => {
-    if (localStorage.getItem('auth')) {
+    if (show && localStorage.getItem('auth')) {
       login('', '');
     }
-  }, []);
+  }, [show]);
   return (
     <>
       <Modal show={show} backdrop="static">
@@ -99,6 +102,18 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
                   setPassword(e.target.value);
                 }}
               />
+            </Form.Group>
+            <Form.Group>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={saveUsernamePassword}
+                  onChange={(e) => {
+                    setSaveUsernamePassword(e.target.checked);
+                  }}
+                />
+                <span> Save Username and Password</span>
+              </label>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>

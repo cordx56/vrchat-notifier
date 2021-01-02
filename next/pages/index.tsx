@@ -6,8 +6,9 @@ import { faCheck } from '@fortawesome/free-solid-svg-icons';
 import LoginModal from '../components/loginModal';
 import FriendList from '../components/friendList';
 
+let socket = null;
+
 export default function Home() {
-  let socket = null;
   const [showLoginModal, setShowLoginModal] = useState(true);
   const [eventLog, setEventLog] = useState([]);
   const [updateFlag, setUpdateFlag] = useState(0);
@@ -15,8 +16,22 @@ export default function Home() {
   const [token, setToken] = useState('');
   const [auth, setAuth] = useState('');
 
+  // Notification settings
+  const [notfFriendOnline, setNotfFriendOnline] = useState(true);
+  const [notfFriendOffline, setNotfFriendOffline] = useState(true);
+  const [notfFriendActive, setNotfFriendActive] = useState(true);
+  const [notfFriendAdd, setNotfFriendAdd] = useState(true);
+  const [notfFriendDelete, setNotfFriendDelete] = useState(true);
+  const [notfFriendUpdate, setNotfFriendUpdate] = useState(true);
+  const [notfFriendLocation, setNotfFriendLocation] = useState(true);
+
   const onWebSocketMessage = (e) => {
     const data = JSON.parse(e.data);
+    if (data.err) {
+      setShowLoginModal(true);
+      return;
+    }
+    let notificationEnabled = true;
     let notificationTitle = '';
     let notificationBody = '';
     let notificationIcon = '';
@@ -32,53 +47,61 @@ export default function Home() {
       notificationTitle = content.user.displayName + ' moved world';
       notificationBody = content.user.displayName + ' moved to ' + world;
       notificationIcon = content.user.currentAvatarThumbnailImageUrl;
+      notificationEnabled = notfFriendLocation;
     } else if (data.type === 'friend-online' && content) {
       notificationTitle = content.user.displayName + ' is now online!';
       notificationIcon = content.user.currentAvatarThumbnailImageUrl;
+      notificationEnabled = notfFriendOnline;
     } else if (data.type === 'friend-active' && content) {
       notificationTitle = content.user.displayName + ' is now active!';
       notificationIcon = content.user.currentAvatarThumbnailImageUrl;
+      notificationEnabled = notfFriendActive;
     } else if (data.type === 'friend-update' && content) {
       notificationTitle = content.user.displayName + "'s status updated";
       notificationIcon = content.user.currentAvatarThumbnailImageUrl;
+      notificationEnabled = notfFriendUpdate;
+      console.log(notfFriendUpdate);
     } else {
       notificationTitle = data.type;
     }
-    new Notification(notificationTitle, {
-      body: notificationBody,
-      icon: notificationIcon,
-    });
+    if (notificationEnabled) {
+      new Notification(notificationTitle, {
+        body: notificationBody,
+        icon: notificationIcon,
+      });
+    }
 
-    setEventLog(
+    setEventLog((prevState) =>
       [
         {
           title: notificationTitle,
           icon: notificationIcon,
           body: notificationBody,
+          date: new Date(),
         },
-      ].concat(eventLog)
+      ].concat(prevState)
     );
 
-    setUpdateFlag(updateFlag + 1);
+    setUpdateFlag((prevState) => prevState + 1);
+    console.log(updateFlag);
   };
 
   const onWebSocketClose = (e) => {
     setWebSocketConnectFlag(false);
-    connectWebSocket();
+    if (!showLoginModal) {
+      connectWebSocket(token);
+    }
   };
 
   const onWebSocketOpen = (e) => {
     setWebSocketConnectFlag(true);
   };
 
-  const connectWebSocket = () => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      socket = new WebSocket('wss://pipeline.vrchat.cloud/?authToken=' + token);
-      socket.onmessage = onWebSocketMessage;
-      socket.onclose = onWebSocketClose;
-      socket.onopen = onWebSocketOpen;
-    }
+  const connectWebSocket = (token) => {
+    socket = new WebSocket('wss://pipeline.vrchat.cloud/?authToken=' + token);
+    socket.onmessage = onWebSocketMessage;
+    socket.onclose = onWebSocketClose;
+    socket.onopen = onWebSocketOpen;
   };
 
   useEffect(() => {
@@ -91,7 +114,7 @@ export default function Home() {
     setToken(token);
     setAuth(auth);
     setShowLoginModal(false);
-    connectWebSocket();
+    connectWebSocket(token);
     setUpdateFlag(updateFlag + 1);
   };
 
@@ -99,8 +122,11 @@ export default function Home() {
     <div key={index}>
       <h2>{obj.title}</h2>
       <div>
-        <img src={obj.icon} />
-        <span> {obj.body}</span>
+        <img src={obj.icon} style={{ width: '8rem' }} />
+        <span>
+          <p>{obj.body}</p>
+          <p>{obj.date.toString()}</p>
+        </span>
       </div>
     </div>
   ));
@@ -123,6 +149,78 @@ export default function Home() {
         </Container>
       </Navbar>
       <Container>
+        <Row>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendOnline}
+              onChange={(e) => {
+                setNotfFriendOnline(e.target.checked);
+              }}
+            />
+            Friend Online
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendOffline}
+              onChange={(e) => {
+                setNotfFriendOffline(e.target.checked);
+              }}
+            />
+            Friend Offline
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendActive}
+              onChange={(e) => {
+                setNotfFriendActive(e.target.checked);
+              }}
+            />
+            Friend Active
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendAdd}
+              onChange={(e) => {
+                setNotfFriendAdd(e.target.checked);
+              }}
+            />
+            Friend Add
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendDelete}
+              onChange={(e) => {
+                setNotfFriendDelete(e.target.checked);
+              }}
+            />
+            Friend Delete
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendUpdate}
+              onChange={(e) => {
+                setNotfFriendUpdate(e.target.checked);
+              }}
+            />
+            Friend Update
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={notfFriendLocation}
+              onChange={(e) => {
+                setNotfFriendLocation(e.target.checked);
+              }}
+            />
+            Friend Location
+          </label>
+        </Row>
         <Row>
           <Col>
             <h1>Event log</h1>
