@@ -14,7 +14,8 @@ export default function Home() {
   const [updateFlag, setUpdateFlag] = useState(0);
   const [webSocketConnectFlag, setWebSocketConnectFlag] = useState(false);
   const [token, setToken] = useState('');
-  const [auth, setAuth] = useState('');
+  //const [auth, setAuth] = useState('');
+  const [clientApiKey, setClientApiKey] = useState('');
 
   // Notification settings
   const [notfFriendOnline, setNotfFriendOnline] = useState(true);
@@ -110,9 +111,10 @@ export default function Home() {
     }
   }, []);
 
-  const onLoginSuccess = (token, auth) => {
+  const onLoginSuccess = (token, auth, clientApiKey) => {
     setToken(token);
-    setAuth(auth);
+    //setAuth(auth);
+    setClientApiKey(clientApiKey);
     setShowLoginModal(false);
     connectWebSocket(token);
     setUpdateFlag(updateFlag + 1);
@@ -227,7 +229,11 @@ export default function Home() {
             {eventLogHtml}
           </Col>
           <Col md="3">
-            <FriendList update={updateFlag} auth={auth} />
+            <FriendList
+              update={updateFlag}
+              token={token}
+              clientApiKey={clientApiKey}
+            />
           </Col>
         </Row>
       </Container>

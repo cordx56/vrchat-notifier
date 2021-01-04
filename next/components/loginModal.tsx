@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../common';
 
 type Props = {
   show: boolean;
-  onSuccess?: (token: string, auth: string) => void;
+  onSuccess?: (token: string, auth: string, clientApiKey: string) => void;
 };
 
 const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
@@ -29,41 +29,41 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
     axios
       .get(API_BASE_URL + '/1/config')
       .then((response) => {
-        localStorage.setItem('clientApiKey', response.data.clientApiKey);
+        const clientApiKey = response.data.clientApiKey;
+        let auth = localStorage.getItem('auth');
+        if (!auth) {
+          auth = btoa(
+            encodeURIComponent(username) + ':' + encodeURIComponent(password)
+          );
+        }
+        axios
+          .get(API_BASE_URL + '/1/auth', {
+            headers: {
+              Authorization: 'Basic ' + auth,
+            },
+          })
+          .then((response) => {
+            setLogining(false);
+            if (response.data.ok) {
+              // localStorage.setItem('token', response.data.token);
+              if (saveUsernamePassword) {
+                localStorage.setItem('auth', auth);
+              }
+              if (onSuccess) {
+                onSuccess(response.data.token, auth, clientApiKey);
+              }
+            }
+          })
+          .catch((error) => {
+            setLogining(false);
+            if (error.response) {
+              setErrorMessage(error.response.data.error.message);
+            } else {
+              setErrorMessage(error);
+            }
+          });
       })
       .catch((error) => console.log(error));
-    let auth = localStorage.getItem('auth');
-    if (!auth) {
-      auth = btoa(
-        encodeURIComponent(username) + ':' + encodeURIComponent(password)
-      );
-    }
-    axios
-      .get(API_BASE_URL + '/1/auth', {
-        headers: {
-          Authorization: 'Basic ' + auth,
-        },
-      })
-      .then((response) => {
-        setLogining(false);
-        if (response.data.ok) {
-          // localStorage.setItem('token', response.data.token);
-          if (saveUsernamePassword) {
-            localStorage.setItem('auth', auth);
-          }
-          if (onSuccess) {
-            onSuccess(response.data.token, auth);
-          }
-        }
-      })
-      .catch((error) => {
-        setLogining(false);
-        if (error.response) {
-          setErrorMessage(error.response.data.error.message);
-        } else {
-          setErrorMessage(error);
-        }
-      });
   };
   useEffect(() => {
     if (show && localStorage.getItem('auth')) {

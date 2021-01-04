@@ -4,50 +4,51 @@ import { API_BASE_URL } from '../common';
 
 type Props = {
   update: number;
-  auth: string;
+  token: string;
+  clientApiKey: string;
 };
 
-const FriendList: React.FC<Props> = ({ update, auth }) => {
+const FriendList: React.FC<Props> = ({ update, token, clientApiKey }) => {
   const [friendList, setFriendList] = useState([]);
   const [worldList, setWorldList] = useState({});
   const updateFriendList = () => {
     //const auth = localStorage.getItem('auth');
-    const apiKey = localStorage.getItem('clientApiKey');
-    if (auth && apiKey) {
-      axios
-        .get(API_BASE_URL + '/1/auth/user/friends?&apiKey=' + apiKey, {
-          headers: {
-            Authorization: 'Basic ' + auth,
-          },
-        })
-        .then((response) => {
-          const friends = response.data;
-          friends.map((friend) => {
-            if (friend.location !== 'private') {
-              const worldId = friend.location.split(':')[0];
-              axios
-                .get(
-                  API_BASE_URL + '/1/worlds/' + worldId + '?apiKey=' + apiKey,
-                  {
-                    headers: {
-                      Authorization: 'Basic ' + auth,
-                    },
-                  }
-                )
-                .then((response) => {
-                  //setWorldList((prevState) => {
-                  //  prevState[worldId] = response.data;
-                  //  return prevState;
-                  //});
-                  console.log(response.data);
-                })
-                .catch((error) => console.log(error));
-            }
-          });
-          setFriendList(friends);
-        })
-        .catch((error) => console.log(error));
-    }
+    axios
+      .get(
+        API_BASE_URL +
+          '/1/auth/user/friends?&apiKey=' +
+          clientApiKey +
+          '&authToken=' +
+          token
+      )
+      .then((response) => {
+        const friends = response.data;
+        friends.map((friend) => {
+          if (friend.location !== 'private') {
+            const worldId = friend.location.split(':')[0];
+            axios
+              .get(
+                API_BASE_URL +
+                  '/1/worlds/' +
+                  worldId +
+                  '?apiKey=' +
+                  clientApiKey +
+                  '&authToken=' +
+                  token
+              )
+              .then((response) => {
+                //setWorldList((prevState) => {
+                //  prevState[worldId] = response.data;
+                //  return prevState;
+                //});
+                console.log(response.data);
+              })
+              .catch((error) => console.log(error));
+          }
+        });
+        setFriendList(friends);
+      })
+      .catch((error) => console.log(error));
   };
   useEffect(() => {
     updateFriendList();
