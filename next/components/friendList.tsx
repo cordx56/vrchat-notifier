@@ -8,11 +8,12 @@ type Props = {
   clientApiKey: string;
 };
 
+const worldList = {};
+
 const FriendList: React.FC<Props> = ({ update, token, clientApiKey }) => {
   const [friendList, setFriendList] = useState([]);
   const [worldList, setWorldList] = useState({});
   const updateFriendList = () => {
-    //const auth = localStorage.getItem('auth');
     axios
       .get(
         API_BASE_URL +
@@ -26,24 +27,23 @@ const FriendList: React.FC<Props> = ({ update, token, clientApiKey }) => {
         friends.map((friend) => {
           if (friend.location !== 'private') {
             const worldId = friend.location.split(':')[0];
-            axios
-              .get(
-                API_BASE_URL +
-                  '/1/worlds/' +
-                  worldId +
-                  '?apiKey=' +
-                  clientApiKey +
-                  '&authToken=' +
-                  token
-              )
-              .then((response) => {
-                //setWorldList((prevState) => {
-                //  prevState[worldId] = response.data;
-                //  return prevState;
-                //});
-                console.log(response.data);
-              })
-              .catch((error) => console.log(error));
+            if (!(worldId in worldList)) {
+              axios
+                .get(
+                  API_BASE_URL +
+                    '/1/worlds/' +
+                    worldId +
+                    '?apiKey=' +
+                    clientApiKey +
+                    '&authToken=' +
+                    token
+                )
+                .then((response) => {
+                  worldList[worldId] = response.data;
+                  console.log(response.data);
+                })
+                .catch((error) => console.log(error));
+            }
           }
         });
         setFriendList(friends);
@@ -60,6 +60,9 @@ const FriendList: React.FC<Props> = ({ update, token, clientApiKey }) => {
   const avaterImageStyle = {
     width: '8rem',
   };
+  const worldImageStyle = {
+    width: '8rem',
+  };
   const friendListHtml = friendList.map((obj, index) => (
     <div key={index}>
       <h3>
@@ -72,10 +75,18 @@ const FriendList: React.FC<Props> = ({ update, token, clientApiKey }) => {
           style={avaterImageStyle}
         />
         <h4>{obj.status}</h4>
-        {obj.location}
-        {obj.location !== 'private'
-          ? worldList[obj.location.split(':')[0]]
-          : 'private'}
+        {obj.location !== 'private' &&
+        worldList[obj.location?.split(':')[0]] ? (
+          <>
+            <img
+              src={worldList[obj.location?.split(':')[0]].thumbnailImageUrl}
+              style={worldImageStyle}
+            />
+            <span> {worldList[obj.location?.split(':')[0]].name}</span>
+          </>
+        ) : (
+          'private'
+        )}
       </div>
     </div>
   ));

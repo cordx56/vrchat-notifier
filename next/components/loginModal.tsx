@@ -45,7 +45,7 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
           .then((response) => {
             setLogining(false);
             if (response.data.ok) {
-              // localStorage.setItem('token', response.data.token);
+              localStorage.setItem('token', response.data.token);
               if (saveUsernamePassword) {
                 localStorage.setItem('auth', auth);
               }
@@ -66,8 +66,25 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
       .catch((error) => console.log(error));
   };
   useEffect(() => {
-    if (show && localStorage.getItem('auth')) {
-      login('', '');
+    if (show) {
+      const authToken = localStorage.getItem('token');
+      if (authToken) {
+        axios
+          .get(API_BASE_URL + '/1/auth/user?authToken=' + authToken)
+          .then((response) => {
+            axios.get(API_BASE_URL + '/1/config').then((response) => {
+              const clientApiKey = response.data.clientApiKey;
+              if (onSuccess) {
+                onSuccess(authToken, '', clientApiKey);
+              }
+            });
+          })
+          .catch((error) => {
+            if (localStorage.getItem('auth')) {
+              login('', '');
+            }
+          });
+      }
     }
   }, [show]);
   return (
@@ -125,7 +142,7 @@ const LoginModal: React.FC<Props> = ({ show, onSuccess }) => {
                 </>
               ) : (
                 <>
-                  <span> Login</span>
+                  <span>Login</span>
                 </>
               )}
             </Button>

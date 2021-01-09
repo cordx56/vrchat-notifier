@@ -29,7 +29,8 @@ export default function Home() {
   const onWebSocketMessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.err) {
-      setShowLoginModal(true);
+      console.log(data);
+      // setShowLoginModal(true);
       return;
     }
     let notificationEnabled = true;
@@ -89,9 +90,7 @@ export default function Home() {
 
   const onWebSocketClose = (e) => {
     setWebSocketConnectFlag(false);
-    if (!showLoginModal) {
-      connectWebSocket(token);
-    }
+    setShowLoginModal(true);
   };
 
   const onWebSocketOpen = (e) => {
@@ -228,7 +227,7 @@ export default function Home() {
             <h1>Event log</h1>
             {eventLogHtml}
           </Col>
-          <Col md="3">
+          <Col md="4">
             <FriendList
               update={updateFlag}
               token={token}
